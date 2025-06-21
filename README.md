@@ -68,7 +68,7 @@ google_trend_Machine-Learning/
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/google_trend_Machine-Learning.git
+git clone https://github.com/DeveloperMODE-korea/google_trend_Machine-Learning.git
 cd google_trend_Machine-Learning
 ```
 
