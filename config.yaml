@@ -1,0 +1,41 @@
+# Google Trends ML Predictor Configuration
+
+# Data collection settings
+data:
+  geo: ""  # Empty for worldwide
+  timeframe: "today 5-y"  # Last 5 years
+  language: "en-US"
+  normalize: true
+  interpolate_missing: true
+  smoothing_window: 7
+  raw_data_path: "./data/raw"
+  processed_data_path: "./data/processed"
+
+# Model settings
+model:
+  test_size: 0.2
+  random_state: 42
+  validation_split: 0.1
+  
+  # LSTM parameters
+  lstm_units: [128, 64, 32]
+  lstm_dropout: 0.2
+  lstm_epochs: 100
+  lstm_batch_size: 32
+  
+  # Prophet parameters
+  prophet_changepoint_prior_scale: 0.05
+  prophet_seasonality_mode: "additive"
+  prophet_yearly_seasonality: true
+  prophet_weekly_seasonality: true
+  
+  # Model save path
+  model_save_path: "./models"
+
+# Logging settings
+log_level: "INFO"
+log_file: "google_trends_ml.log"
+
+# Visualization settings
+plot_style: "seaborn"
+figure_size: [12, 6] 
