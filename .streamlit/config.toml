@@ -1,0 +1,31 @@
+[global]
+# Configuration for Streamlit app
+showErrorDetails = true
+developmentMode = false
+
+[server]
+# Server configuration
+headless = false
+enableCORS = false
+enableXsrfProtection = false
+enableWebsocketCompression = false
+port = 8502
+allowRunOnSave = true
+
+[browser]
+# Browser configuration
+gatherUsageStats = false
+serverAddress = "localhost"
+
+[theme]
+# Theme configuration
+primaryColor = "#1f77b4"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#262730"
+font = "sans serif"
+
+[client]
+# Client configuration
+caching = true
+toolbarMode = "auto" 

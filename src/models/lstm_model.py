@@ -172,7 +172,13 @@ class LSTMTrendsModel(BaseTrendsModel):
         # Training
         logger.info("Starting LSTM training for %d epochs", epochs)
         
+        # Ensure data types are correct
+        X_train = np.array(X_train, dtype=np.float32)
+        y_train = np.array(y_train, dtype=np.float32)
+        
         if X_val is not None and y_val is not None:
+            X_val = np.array(X_val, dtype=np.float32)
+            y_val = np.array(y_val, dtype=np.float32)
             validation_data = (X_val, y_val)
         else:
             validation_data = None

@@ -227,8 +227,17 @@ class TrendsPreprocessor:
         if target_column not in data.columns:
             raise ValueError(f"Target column '{target_column}' not found in data")
         
-        # Convert to numpy array
-        values = data.values
+        # Check if we have enough data
+        min_required = sequence_length + prediction_length
+        if len(data) < min_required:
+            logger.warning("Not enough data for sequences. Data length: %d, Required: %d", 
+                         len(data), min_required)
+            # Return empty arrays instead of raising error
+            return np.array([], dtype=np.float32).reshape(0, sequence_length, data.shape[1]), \
+                   np.array([], dtype=np.float32)
+        
+        # Convert to numpy array with proper dtype
+        values = data.values.astype(np.float32)
         target_idx = data.columns.get_loc(target_column)
         
         X, y = [], []
@@ -243,7 +252,12 @@ class TrendsPreprocessor:
             else:
                 y.append(values[i:i + prediction_length, target_idx])
         
-        return np.array(X), np.array(y)
+        X_array = np.array(X, dtype=np.float32)
+        y_array = np.array(y, dtype=np.float32)
+        
+        logger.info("Created %d sequences with shape %s", len(X_array), X_array.shape)
+        
+        return X_array, y_array
     
     def train_test_split_temporal(self, data: pd.DataFrame,
                                  test_size: float = 0.2,

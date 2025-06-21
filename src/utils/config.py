@@ -73,7 +73,7 @@ class AppConfig:
     log_file: str = "google_trends_ml.log"
     
     # Visualization
-    plot_style: str = "seaborn"
+    plot_style: str = "seaborn-v0_8"
     figure_size: tuple = (12, 6)
     
     def __post_init__(self):

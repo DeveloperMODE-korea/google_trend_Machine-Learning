@@ -45,12 +45,26 @@ class TrendsCollector:
         self.backoff_factor = backoff_factor
         
         # Initialize pytrends with retries
-        self.pytrends = TrendReq(
-            hl=self.config.language,
-            tz=0,  # UTC timezone
-            retries=retries,
-            backoff_factor=backoff_factor
-        )
+        try:
+            # Try new parameter name first (newer versions)
+            self.pytrends = TrendReq(
+                hl=self.config.language,
+                tz=0,  # UTC timezone
+                retries=retries,
+                backoff_factor=backoff_factor
+            )
+        except Exception as e:
+            # Fallback to basic initialization without retry parameters
+            logger.warning("Failed to initialize TrendReq with retry parameters: %s", str(e))
+            try:
+                self.pytrends = TrendReq(
+                    hl=self.config.language,
+                    tz=0
+                )
+            except Exception as e2:
+                # Last resort - minimal initialization
+                logger.warning("Failed basic initialization, using minimal setup: %s", str(e2))
+                self.pytrends = TrendReq()
         
         logger.info("TrendsCollector initialized with language: %s", self.config.language)
     

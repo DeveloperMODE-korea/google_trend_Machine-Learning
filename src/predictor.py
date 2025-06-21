@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 import json
 
 from .data.collector import TrendsCollector, batch_collect_keywords
+from .data.collector_safe import SafeTrendsCollector, batch_collect_keywords_safe
 from .data.preprocessor import TrendsPreprocessor, load_processed_data
 from .models.base_model import ModelRegistry
 from .models.lstm_model import LSTMTrendsModel
@@ -40,7 +41,13 @@ class TrendsPredictor:
             config: Application configuration.
         """
         self.config = config or AppConfig()
-        self.collector = TrendsCollector(self.config.data)
+        # Use SafeTrendsCollector for better compatibility
+        try:
+            self.collector = SafeTrendsCollector(self.config.data)
+            logger.info("Using SafeTrendsCollector")
+        except Exception as e:
+            logger.warning("SafeTrendsCollector failed, falling back to TrendsCollector: %s", str(e))
+            self.collector = TrendsCollector(self.config.data)
         self.preprocessor = TrendsPreprocessor(self.config.data)
         self.visualizer = TrendsVisualizer(self.config)
         self.models = {}
@@ -75,7 +82,11 @@ class TrendsPredictor:
         
         # Handle multiple keywords with batching
         if len(keywords) > 5:
-            data = batch_collect_keywords(keywords, self.config.data)
+            try:
+                data = batch_collect_keywords_safe(keywords, self.config.data)
+            except Exception as e:
+                logger.warning("Safe batch collection failed, trying regular: %s", str(e))
+                data = batch_collect_keywords(keywords, self.config.data)
         else:
             data = self.collector.collect_trends(
                 keywords, timeframe=timeframe, geo=geo
@@ -159,15 +170,24 @@ class TrendsPredictor:
         logger.info("Training LSTM model")
         
         # Create sequences
-        sequence_length = 30  # Look back 30 time steps
+        sequence_length = min(30, len(train_data) // 4)  # Adaptive sequence length
         
         # Prepare training sequences
         X_train, y_train = self.preprocessor.create_sequences(
             train_data, target_column, sequence_length
         )
-        X_val, y_val = self.preprocessor.create_sequences(
-            val_data, target_column, sequence_length
-        )
+        
+        # Check if we have enough validation data for sequences
+        if len(val_data) > sequence_length:
+            X_val, y_val = self.preprocessor.create_sequences(
+                val_data, target_column, sequence_length
+            )
+        else:
+            # If validation data is too small, use part of training data
+            logger.warning("Validation data too small for sequences, using training split")
+            split_point = int(0.8 * len(X_train))
+            X_val, y_val = X_train[split_point:], y_train[split_point:]
+            X_train, y_train = X_train[:split_point], y_train[:split_point]
         
         # Create and train model
         lstm_model = LSTMTrendsModel(
@@ -178,6 +198,16 @@ class TrendsPredictor:
         # Build model
         n_features = train_data.shape[1]
         lstm_model.build_model(input_shape=(sequence_length, n_features))
+        
+        # Validate data before training
+        if len(X_train) == 0:
+            raise ValueError("Training data is empty after sequence creation")
+        if len(X_val) == 0:
+            logger.warning("Validation data is empty, training without validation")
+            X_val, y_val = None, None
+        
+        logger.info("Training LSTM with %d training samples, %d validation samples", 
+                   len(X_train), len(X_val) if X_val is not None else 0)
         
         # Train
         history = lstm_model.train(
@@ -311,9 +341,20 @@ class TrendsPredictor:
                     
                     # Create date index for predictions
                     last_date = last_data.index[-1]
-                    freq = pd.infer_freq(last_data.index) or 'D'
+                    freq = pd.infer_freq(last_data.index)
+                    if freq is None or 'W-SUN' in str(freq):
+                        freq = 'D'  # Default to daily if frequency can't be inferred
+                    
+                    # Create safe timedelta
+                    if freq == 'W':
+                        delta = pd.Timedelta(days=7)
+                    elif freq == 'M':
+                        delta = pd.Timedelta(days=30)
+                    else:
+                        delta = pd.Timedelta(days=1)
+                    
                     future_dates = pd.date_range(
-                        start=last_date + pd.Timedelta(1, freq),
+                        start=last_date + delta,
                         periods=periods,
                         freq=freq
                     )
@@ -334,9 +375,20 @@ class TrendsPredictor:
                     
                     # Get dates
                     last_date = last_data.index[-1]
-                    freq = pd.infer_freq(last_data.index) or 'D'
+                    freq = pd.infer_freq(last_data.index)
+                    if freq is None or 'W-SUN' in str(freq):
+                        freq = 'D'  # Default to daily if frequency can't be inferred
+                    
+                    # Create safe timedelta
+                    if freq == 'W':
+                        delta = pd.Timedelta(days=7)
+                    elif freq == 'M':
+                        delta = pd.Timedelta(days=30)
+                    else:
+                        delta = pd.Timedelta(days=1)
+                    
                     future_dates = pd.date_range(
-                        start=last_date + pd.Timedelta(1, freq),
+                        start=last_date + delta,
                         periods=periods,
                         freq=freq
                     )

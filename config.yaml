@@ -37,5 +37,5 @@ log_level: "INFO"
 log_file: "google_trends_ml.log"
 
 # Visualization settings
-plot_style: "seaborn"
+plot_style: "seaborn-v0_8"
 figure_size: [12, 6] 

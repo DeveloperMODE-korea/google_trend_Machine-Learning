@@ -165,6 +165,15 @@ trends_dashboard.html
 predictions_comparison.png
 model_metrics.png
 
+# Streamlit
+.streamlit/secrets.toml
+
+# Temporary files
+test_*.py
+fix_*.py
+*_fix.py
+*_test.py
+
 # Keep directory structure
 !data/raw/.gitkeep
 !data/processed/.gitkeep

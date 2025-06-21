@@ -189,7 +189,17 @@ class ProphetTrendsModel(BaseTrendsModel):
         if isinstance(X, int):
             # Predict n periods into the future
             periods = X
-            freq = kwargs.get('freq', self.data_frequency or 'D')
+            # Use safer frequency specification
+            freq = kwargs.get('freq', 'D')  # Default to daily
+            if self.data_frequency is not None:
+                # Convert pandas frequency to safer format
+                freq_str = str(self.data_frequency)
+                if 'W-SUN' in freq_str or 'W' in freq_str:
+                    freq = 'W'  # Weekly
+                elif 'M' in freq_str:
+                    freq = 'M'  # Monthly
+                elif 'D' in freq_str:
+                    freq = 'D'  # Daily
             future = self.model.make_future_dataframe(periods=periods, freq=freq)
         else:
             # Predict for specific dates
@@ -234,7 +244,17 @@ class ProphetTrendsModel(BaseTrendsModel):
         # Create future dataframe
         if isinstance(X, int):
             periods = X
-            freq = kwargs.get('freq', self.data_frequency or 'D')
+            # Use safer frequency specification
+            freq = kwargs.get('freq', 'D')  # Default to daily
+            if self.data_frequency is not None:
+                # Convert pandas frequency to safer format
+                freq_str = str(self.data_frequency)
+                if 'W-SUN' in freq_str or 'W' in freq_str:
+                    freq = 'W'  # Weekly
+                elif 'M' in freq_str:
+                    freq = 'M'  # Monthly
+                elif 'D' in freq_str:
+                    freq = 'D'  # Daily
             future = self.model.make_future_dataframe(periods=periods, freq=freq)
         else:
             if isinstance(X, pd.DataFrame):

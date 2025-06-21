@@ -20,6 +20,38 @@ from ..utils.config import AppConfig
 logger = logging.getLogger(__name__)
 
 
+def get_available_styles():
+    """Get list of available matplotlib styles."""
+    return plt.style.available
+
+
+def set_safe_style(style_name: str = "default"):
+    """Safely set matplotlib style with fallback."""
+    available_styles = get_available_styles()
+    
+    # Common style mappings for backwards compatibility
+    style_mapping = {
+        'seaborn': 'seaborn-v0_8' if 'seaborn-v0_8' in available_styles else 'default',
+        'ggplot': 'ggplot' if 'ggplot' in available_styles else 'default'
+    }
+    
+    # Use mapping if available
+    if style_name in style_mapping:
+        style_name = style_mapping[style_name]
+    
+    try:
+        if style_name in available_styles:
+            plt.style.use(style_name)
+            logger.info("Using matplotlib style: %s", style_name)
+        else:
+            plt.style.use('default')
+            logger.warning("Style '%s' not available, using default. Available styles: %s", 
+                         style_name, available_styles[:5])  # Show first 5
+    except Exception as e:
+        plt.style.use('default')
+        logger.error("Error setting style '%s': %s. Using default.", style_name, str(e))
+
+
 class TrendsVisualizer:
     """Class for creating visualizations of trends data and predictions."""
     
@@ -32,8 +64,8 @@ class TrendsVisualizer:
         """
         self.config = config or AppConfig()
         
-        # Set plotting style
-        plt.style.use(self.config.plot_style)
+        # Set plotting style safely
+        set_safe_style(self.config.plot_style)
         sns.set_palette("husl")
         
         # Default figure size
@@ -148,8 +180,15 @@ class TrendsVisualizer:
         # Add vertical line at forecast start
         if len(historical) > 0 and len(forecast) > 0:
             forecast_start = forecast.index[0]
-            ax.axvline(x=forecast_start, color='gray', 
-                      linestyle='--', alpha=0.5)
+            # Convert to matplotlib-compatible format
+            try:
+                ax.axvline(x=forecast_start, color='gray', 
+                          linestyle='--', alpha=0.5)
+            except Exception:
+                # If timestamp arithmetic fails, convert to ordinal
+                import matplotlib.dates as mdates
+                ax.axvline(x=mdates.date2num(forecast_start), color='gray', 
+                          linestyle='--', alpha=0.5)
         
         ax.set_xlabel('Date')
         ax.set_ylabel('Value')
@@ -488,8 +527,14 @@ def plot_quick_summary(data: pd.DataFrame,
         ax1.plot(predictions.index, predictions.values, 
                 label='Forecast', color='red', alpha=0.8)
         # Add forecast start line
-        ax1.axvline(x=predictions.index[0], color='gray', 
-                   linestyle='--', alpha=0.5)
+        try:
+            ax1.axvline(x=predictions.index[0], color='gray', 
+                       linestyle='--', alpha=0.5)
+        except Exception:
+            # If timestamp arithmetic fails, convert to ordinal
+            import matplotlib.dates as mdates
+            ax1.axvline(x=mdates.date2num(predictions.index[0]), color='gray', 
+                       linestyle='--', alpha=0.5)
     
     ax1.set_title(f'Google Trends: {keyword}')
     ax1.set_ylabel('Search Interest')

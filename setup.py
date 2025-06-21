@@ -39,6 +39,7 @@ setup(
             "trends-predict=src.predictor:main",
             "trends-collect=src.data.collector:main",
             "trends-preprocess=src.data.preprocessor:main",
+            "trends-dashboard=run_dashboard:main",
         ],
     },
     include_package_data=True,
